@@ -3,130 +3,263 @@ package dev.devora.studio
 
 import android.app.Activity
 import android.os.Bundle
-import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
-import android.widget.*
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 
 class MainActivity : Activity() {
 
-    private val bg = Color.rgb(10, 10, 16)
-    private val panel = Color.rgb(22, 21, 32)
-    private val purple = Color.rgb(153, 92, 255)
+    private val backgroundColor = Color.rgb(12, 12, 18)
+    private val panel = Color.rgb(25, 24, 35)
+    private val purple = Color.rgb(139, 75, 235)
     private val white = Color.WHITE
-    private val muted = Color.rgb(160, 157, 177)
+    private val muted = Color.rgb(165, 160, 180)
+    private val green = Color.rgb(70, 200, 140)
 
     private lateinit var root: LinearLayout
     private lateinit var content: LinearLayout
-    private lateinit var prefs: android.content.SharedPreferences
 
-    private data class Lesson(
+    private val preferences by lazy {
+        getSharedPreferences("devora_progress", MODE_PRIVATE)
+    }
+
+    private val completed = mutableSetOf<String>()
+
+    data class Lesson(
+        val id: String,
         val language: String,
         val title: String,
         val level: String,
         val description: String,
+        val code: String,
         val explanation: String,
-        val example: String,
         val question: String,
-        val answers: List<String>,
-        val correct: Int
+        val options: List<String>,
+        val correctAnswer: Int
     )
 
     private val lessons = listOf(
+
         Lesson(
-            "Python", "مقدمة إلى Python", "مبتدئ",
-            "تعرّف على لغة Python وطريقة كتابة أول برنامج.",
-            "Python لغة برمجة سهلة القراءة وتُستخدم في تطوير التطبيقات وتحليل البيانات والذكاء الاصطناعي.\n\nيمكنك البدء بها دون معرفة برمجية سابقة.",
+            "py1", "Python",
+            "مقدمة إلى Python",
+            "مبتدئ",
+            "تعرف على لغة Python واستخداماتها.",
             "print(\"Hello World\")",
-            "ما وظيفة print في Python؟",
-            listOf("طباعة نص", "حذف ملف", "إنشاء صورة", "إيقاف الجهاز"), 0
+            "الأمر print() يعرض النصوص والنتائج على الشاشة.",
+            "ما وظيفة print()؟",
+            listOf(
+                "حذف النص",
+                "عرض النص",
+                "إغلاق البرنامج",
+                "إنشاء ملف"
+            ),
+            1
         ),
+
         Lesson(
-            "Python", "المتغيرات", "مبتدئ",
-            "تعلّم تخزين البيانات واستخدامها.",
-            "المتغير هو اسم نستخدمه للإشارة إلى قيمة مخزنة.\n\nيمكن أن يحتوي على نص أو رقم أو قيمة منطقية.",
+            "py2", "Python",
+            "المتغيرات في Python",
+            "مبتدئ",
+            "تعلم تخزين البيانات داخل المتغيرات.",
             "name = \"Ali\"\nage = 18\nprint(name)",
-            "أي سطر ينشئ متغيراً؟",
-            listOf("print()", "name = \"Ali\"", "if", "return"), 1
+            "المتغير يخزن قيمة يمكن استخدامها لاحقاً داخل البرنامج.",
+            "أي رمز يستخدم لإسناد قيمة إلى متغير؟",
+            listOf("==", "=", "!=", "+"),
+            1
         ),
+
         Lesson(
-            "Kotlin", "مقدمة إلى Kotlin", "مبتدئ",
-            "تعرّف على لغة تطوير تطبيقات Android.",
-            "Kotlin لغة حديثة تعمل على منصة JVM وتُستخدم على نطاق واسع في تطوير تطبيقات Android.\n\nتتميز بوضوح الصياغة ودعم أنواع البيانات الآمنة.",
+            "kt1", "Kotlin",
+            "مقدمة إلى Kotlin",
+            "مبتدئ",
+            "تعرف على أساسيات Kotlin.",
             "fun main() {\n    println(\"Hello\")\n}",
-            "ما الكلمة المستخدمة لتعريف دالة في Kotlin؟",
-            listOf("function", "define", "fun", "method"), 2
-        ),
-        Lesson(
-            "Kotlin", "المتغيرات", "مبتدئ",
-            "افهم الفرق بين val و var.",
-            "نستخدم val لتعريف قيمة لا يمكن إعادة إسنادها، ونستخدم var لقيمة يمكن تغييرها.",
-            "val name = \"Ali\"\nvar age = 18\nage = 19",
-            "أي كلمة تسمح بتغيير قيمة المتغير؟",
-            listOf("val", "var", "fun", "class"), 1
-        ),
-        Lesson(
-            "Java", "مقدمة إلى Java", "مبتدئ",
-            "تعرّف على أساسيات لغة Java.",
-            "Java لغة برمجة متعددة الاستخدامات، تعتمد على البرمجة كائنية التوجه وتعمل على JVM.",
-            "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello\");\n    }\n}",
+            "fun تستخدم لتعريف الدوال، وmain هي نقطة بداية البرنامج.",
             "ما الأمر المستخدم لطباعة النص؟",
-            listOf("echo()", "print()", "System.out.println()", "write()"), 2
+            listOf("printLine", "println", "write", "echo"),
+            1
         ),
+
         Lesson(
-            "JavaScript", "مقدمة إلى JavaScript", "مبتدئ",
-            "تعلّم أساسيات لغة الويب التفاعلية.",
-            "JavaScript تُستخدم لإضافة التفاعل إلى صفحات الويب، كما يمكن استخدامها في تطبيقات الخادم.",
-            "let name = \"Ali\";\nconsole.log(name);",
-            "ما وظيفة console.log؟",
-            listOf("عرض قيمة في وحدة التحكم", "حذف الصفحة", "إغلاق المتصفح", "إنشاء قاعدة بيانات"), 0
+            "kt2", "Kotlin",
+            "المتغيرات في Kotlin",
+            "مبتدئ",
+            "تعلم تعريف المتغيرات.",
+            "val name = \"Ali\"\nvar age = 20",
+            "val لمتغير لا يعاد إسناد قيمته، وvar لمتغير يمكن تغيير قيمته.",
+            "أي نوع يسمح بتغيير قيمة المتغير؟",
+            listOf("val", "var", "fun", "class"),
+            1
         ),
+
         Lesson(
-            "C++", "مقدمة إلى C++", "مبتدئ",
-            "ابدأ بتعلّم أساسيات C++.",
-            "C++ لغة قوية تُستخدم في البرمجيات عالية الأداء والألعاب والأنظمة.",
+            "ja1", "Java",
+            "مقدمة إلى Java",
+            "مبتدئ",
+            "تعرف على شكل برنامج Java.",
+            "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello\");\n    }\n}",
+            "تبدأ برامج Java عادة من الدالة main.",
+            "ما الأمر المستخدم لطباعة نص في Java؟",
+            listOf(
+                "console.log()",
+                "System.out.println()",
+                "print()",
+                "echo()"
+            ),
+            1
+        ),
+
+        Lesson(
+            "js1", "JavaScript",
+            "مقدمة إلى JavaScript",
+            "مبتدئ",
+            "تعلم أول أمر في JavaScript.",
+            "console.log(\"Hello World\");",
+            "console.log() تعرض المعلومات في وحدة التحكم.",
+            "ما وظيفة console.log()؟",
+            listOf(
+                "عرض المعلومات",
+                "حذف المتغيرات",
+                "إيقاف الجهاز",
+                "إنشاء مجلد"
+            ),
+            0
+        ),
+
+        Lesson(
+            "cpp1", "C++",
+            "مقدمة إلى C++",
+            "مبتدئ",
+            "تعرف على الهيكل الأساسي للبرنامج.",
             "#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << \"Hello\";\n    return 0;\n}",
-            "ما المكتبة المستخدمة في المثال؟",
-            listOf("iostream", "stdio", "string", "math"), 0
+            "cout تستخدم لطباعة البيانات على الشاشة.",
+            "ما وظيفة cout؟",
+            listOf(
+                "قراءة ملف",
+                "طباعة البيانات",
+                "إنشاء متغير",
+                "إنهاء البرنامج"
+            ),
+            1
         )
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        window.statusBarColor = bg
-        window.navigationBarColor = bg
-        window.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL
+        completed.addAll(
+            preferences.getStringSet("completed", emptySet()) ?: emptySet()
+        )
 
-        prefs = getSharedPreferences("devora_progress", Context.MODE_PRIVATE)
+        showHome()
+    }
 
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
+    }
+
+    private fun cardBackground(color: Int): GradientDrawable {
+        return GradientDrawable().apply {
+            setColor(color)
+            cornerRadius = dp(18).toFloat()
+            setStroke(dp(1), Color.rgb(48, 43, 65))
+        }
+    }
+
+    private fun createRoot() {
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(bg)
+            setBackgroundColor(backgroundColor)
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
 
         setContentView(root)
-        showHome()
     }
 
-    private fun dp(value: Int): Int =
-        (value * resources.displayMetrics.density).toInt()
+    private fun render(
+        title: String,
+        subtitle: String = ""
+    ) {
+        createRoot()
 
-    private fun cardBackground(color: Int = panel): GradientDrawable {
-        return GradientDrawable().apply {
-            setColor(color)
-            cornerRadius = dp(18).toFloat()
-            setStroke(dp(1), Color.rgb(48, 40, 65))
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(20), dp(20), dp(15))
         }
+
+        val appName = text(
+            "DEVORA",
+            13f,
+            purple,
+            true
+        )
+
+        header.addView(appName)
+
+        val heading = text(
+            title,
+            25f,
+            white,
+            true
+        )
+
+        val headingParams = LinearLayout.LayoutParams(
+            -1,
+            -2
+        )
+
+        headingParams.topMargin = dp(10)
+        header.addView(heading, headingParams)
+
+        if (subtitle.isNotEmpty()) {
+            val sub = text(
+                subtitle,
+                13f,
+                muted
+            )
+
+            val subParams = LinearLayout.LayoutParams(
+                -1,
+                -2
+            )
+
+            subParams.topMargin = dp(5)
+            header.addView(sub, subParams)
+        }
+
+        root.addView(header)
+
+        val scroll = ScrollView(this).apply {
+            fillViewport = true
+            isVerticalScrollBarEnabled = false
+        }
+
+        content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(8), dp(18), dp(28))
+        }
+
+        scroll.addView(content)
+
+        root.addView(
+            scroll,
+            LinearLayout.LayoutParams(
+                -1,
+                0,
+                1f
+            )
+        )
     }
 
     private fun text(
         value: String,
-        size: Float = 14f,
+        size: Float = 15f,
         color: Int = white,
         bold: Boolean = false
     ): TextView {
@@ -134,20 +267,64 @@ class MainActivity : Activity() {
             text = value
             textSize = size
             setTextColor(color)
-            typeface = Typeface.create(
-                "sans-serif",
-                if (bold) Typeface.BOLD else Typeface.NORMAL
-            )
             gravity = Gravity.RIGHT
-            textDirection = View.TEXT_DIRECTION_RTL
-            setLineSpacing(dp(4).toFloat(), 1f)
+            textDirection = View.TEXT_DIRECTION_FIRST_STRONG
+            if (bold) {
+                typeface = Typeface.DEFAULT_BOLD
+            }
+            setPadding(0, dp(3), 0, dp(3))
         }
+    }
+
+    private fun addText(
+        value: String,
+        size: Float = 15f,
+        color: Int = white,
+        bold: Boolean = false
+    ) {
+        content.addView(
+            text(value, size, color, bold)
+        )
+    }
+
+    private fun space(height: Int = 12) {
+        val spacer = View(this)
+
+        content.addView(
+            spacer,
+            LinearLayout.LayoutParams(
+                1,
+                dp(height)
+            )
+        )
+    }
+
+    private fun card(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(16), dp(15), dp(16), dp(15))
+            background = cardBackground(panel)
+        }
+    }
+
+    private fun addCard(
+        view: LinearLayout,
+        marginTop: Int = 10
+    ) {
+        val params = LinearLayout.LayoutParams(
+            -1,
+            -2
+        )
+
+        params.topMargin = dp(marginTop)
+        content.addView(view, params)
     }
 
     private fun button(
         title: String,
-        action: () -> Unit,
-        primary: Boolean = false
+        primary: Boolean = false,
+        action: () -> Unit
     ): TextView {
         return TextView(this).apply {
             text = title
@@ -155,473 +332,563 @@ class MainActivity : Activity() {
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
             setTextColor(white)
+
             background = cardBackground(
-                if (primary) Color.rgb(105, 48, 190) else panel
+                if (primary) purple else panel
             )
-            setPadding(dp(16), dp(13), dp(16), dp(13))
-            setOnClickListener { action() }
-        }
-    }
 
-    private fun addSpace(parent: LinearLayout, height: Int = 12) {
-        parent.addView(View(this), LinearLayout.LayoutParams(-1, dp(height)))
-    }
-
-    private fun addText(
-        parent: LinearLayout,
-        value: String,
-        size: Float = 14f,
-        color: Int = white,
-        bold: Boolean = false
-    ) {
-        parent.addView(
-            text(value, size, color, bold),
-            LinearLayout.LayoutParams(-1, -2)
-        )
-    }
-
-    private fun addCard(
-        parent: LinearLayout,
-        child: View,
-        padding: Int = 16
-    ) {
-        val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = cardBackground()
-            setPadding(dp(padding), dp(padding), dp(padding), dp(padding))
-        }
-        box.addView(child)
-        parent.addView(
-            box,
-            LinearLayout.LayoutParams(-1, -2).apply {
-                bottomMargin = dp(12)
-            }
-        )
-    }
-
-    private fun openPage(title: String) {
-        root.removeAllViews()
-
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(18), dp(14), dp(18), dp(14))
-        }
-
-        val heading = text(title, 19f, white, true)
-        header.addView(
-            heading,
-            LinearLayout.LayoutParams(0, -2, 1f)
-        )
-
-        header.addView(button("الرئيسية") { showHome() })
-        root.addView(header)
-
-        val scroll = ScrollView(this).apply {
-            isFillViewport = true
-        }
-
-        content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(10), dp(18), dp(24))
-        }
-
-        scroll.addView(content)
-        root.addView(
-            scroll,
-            LinearLayout.LayoutParams(-1, 0, 1f)
-        )
-
-        val nav = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            setPadding(dp(5), dp(8), dp(5), dp(8))
-            setBackgroundColor(Color.rgb(17, 16, 25))
-        }
-
-        val items = listOf(
-            "الرئيسية" to { showHome() },
-            "التعلّم" to { showAcademy() },
-            "تقدمي" to { showProgress() }
-        )
-
-        items.forEach { (label, action) ->
-            nav.addView(
-                button(label, action),
-                LinearLayout.LayoutParams(0, -2, 1f).apply {
-                    setMargins(dp(3), 0, dp(3), 0)
-                }
+            setPadding(
+                dp(16),
+                dp(13),
+                dp(16),
+                dp(13)
             )
-        }
 
-        root.addView(nav)
-    }
-
-    private fun completedCount(): Int =
-        prefs.getStringSet("completed", emptySet())?.size ?: 0
-
-    private fun totalXp(): Int =
-        prefs.getInt("xp", 0)
-
-    private fun showHome() {
-        openPage("DEVORA")
-
-        addText(content, "مرحباً بك في", 15f, muted)
-        addText(content, "DEVORA ACADEMY", 27f, white, true)
-        addSpace(content, 5)
-        addText(content, "تعلّم البرمجة. طوّر مهاراتك. اصنع مستقبلك.", 13f, muted)
-        addSpace(content, 20)
-
-        val hero = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = cardBackground(Color.rgb(37, 22, 58))
-            setPadding(dp(20), dp(22), dp(20), dp(22))
-        }
-
-        addText(hero, "مساحة تعلّمك البرمجي", 20f, white, true)
-        addSpace(hero, 8)
-        addText(
-            hero,
-            "ابدأ من الأساسيات وانتقل تدريجياً إلى المفاهيم المتقدمة.",
-            14f,
-            Color.rgb(218, 207, 235)
-        )
-        addSpace(hero, 16)
-        hero.addView(button("استكشف الدروس") { showAcademy() }, 
-            LinearLayout.LayoutParams(-1, -2))
-
-        addCard(content, hero, 18)
-        addText(content, "إحصائيات التعلّم", 18f, white, true)
-        addSpace(content, 10)
-
-        val stats = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-
-        statBox(stats, "الدروس المكتملة", completedCount().toString())
-        statBox(stats, "نقاط الخبرة", totalXp().toString())
-        content.addView(stats)
-        addSpace(content, 18)
-
-        addText(content, "المسارات التعليمية", 18f, white, true)
-        addSpace(content, 10)
-
-        listOf(
-            "Python" to "تعلم البرمجة وتحليل البيانات",
-            "Kotlin" to "تطوير تطبيقات Android",
-            "Java" to "البرمجة كائنية التوجه",
-            "JavaScript" to "برمجة الويب التفاعلي",
-            "C++" to "أساسيات البرمجة عالية الأداء"
-        ).forEach { (name, description) ->
-            addLanguageCard(name, description)
-        }
-    }
-
-    private fun statBox(parent: LinearLayout, title: String, value: String) {
-        val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = cardBackground()
-            setPadding(dp(12), dp(15), dp(12), dp(15))
-        }
-        addText(box, value, 23f, purple, true)
-        addSpace(box, 5)
-        addText(box, title, 12f, muted)
-        parent.addView(
-            box,
-            LinearLayout.LayoutParams(0, -2, 1f).apply {
-                setMargins(dp(4), 0, dp(4), 0)
+            setOnClickListener {
+                action()
             }
-        )
+        }
     }
 
-    private fun addLanguageCard(name: String, description: String) {
-        val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = cardBackground()
-            setPadding(dp(16), dp(15), dp(16), dp(15))
-        }
+    private fun addButton(
+        title: String,
+        primary: Boolean = false,
+        action: () -> Unit
+    ) {
+        val params = LinearLayout.LayoutParams(
+            -1,
+            -2
+        )
 
-        addText(box, name, 19f, purple, true)
-        addSpace(box, 5)
-        addText(box, description, 13f, muted)
-        addSpace(box, 12)
-        box.addView(button("عرض الدروس") {
-            showLanguage(name)
-        })
+        params.topMargin = dp(10)
 
         content.addView(
-            box,
-            LinearLayout.LayoutParams(-1, -2).apply {
-                bottomMargin = dp(10)
-            }
+            button(title, primary, action),
+            params
         )
+    }
+
+    private fun showHome() {
+        val total = lessons.size
+        val done = completed.size
+        val percent = if (total == 0) 0 else done * 100 / total
+        val xp = done * 25
+
+        render(
+            "مرحباً بك في DEVORA",
+            "منصة تعليم البرمجة بطريقة منظمة."
+        )
+
+        val welcome = card()
+
+        welcome.addView(
+            text(
+                "ابدأ رحلتك البرمجية",
+                19f,
+                white,
+                true
+            )
+        )
+
+        welcome.addView(
+            text(
+                "تعلم لغات البرمجة من الأساسيات إلى المفاهيم المتقدمة.",
+                13f,
+                muted
+            )
+        )
+
+        welcome.addView(
+            text(
+                "$percent%  •  $done من $total دروس مكتملة",
+                14f,
+                green,
+                true
+            )
+        )
+
+        welcome.addView(
+            text(
+                "$xp XP",
+                17f,
+                purple,
+                true
+            )
+        )
+
+        addCard(welcome, 8)
+
+        space(12)
+
+        addText("الأقسام التعليمية", 18f, white, true)
+
+        addButton(
+            "أكاديمية البرمجة",
+            true
+        ) {
+            showAcademy()
+        }
+
+        addButton("تقدمي التعليمي") {
+            showProgress()
+        }
+
+        space(18)
+
+        addText("اللغات المتاحة", 18f, white, true)
+
+        val languages = listOf(
+            "Python",
+            "Kotlin",
+            "Java",
+            "JavaScript",
+            "C++"
+        )
+
+        languages.forEach { language ->
+            val count = lessons.count {
+                it.language == language
+            }
+
+            val item = card()
+
+            item.addView(
+                text(
+                    language,
+                    17f,
+                    purple,
+                    true
+                )
+            )
+
+            item.addView(
+                text(
+                    "$count دروس تعليمية",
+                    12f,
+                    muted
+                )
+            )
+
+            addCard(item)
+
+            addButton("دخول $language") {
+                showLanguage(language)
+            }
+        }
     }
 
     private fun showAcademy() {
-        openPage("الأكاديمية")
-        addText(content, "اختر مسارك التعليمي", 21f, white, true)
-        addSpace(content, 8)
-        addText(content, "كل مسار يحتوي على دروس واختبارات قصيرة.", 13f, muted)
-        addSpace(content, 18)
+        render(
+            "أكاديمية البرمجة",
+            "اختر اللغة التي تريد تعلمها."
+        )
 
-        val languages = lessons.map { it.language }.distinct()
+        val languages = listOf(
+            "Python",
+            "Kotlin",
+            "Java",
+            "JavaScript",
+            "C++"
+        )
 
         languages.forEach { language ->
-            val count = lessons.count { it.language == language }
-            val box = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                background = cardBackground()
-                setPadding(dp(17), dp(17), dp(17), dp(17))
+            val count = lessons.count {
+                it.language == language
             }
 
-            addText(box, language, 20f, purple, true)
-            addSpace(box, 5)
-            addText(box, "$count دروس تعليمية", 13f, muted)
-            addSpace(box, 12)
-            box.addView(button("دخول المسار") {
-                showLanguage(language)
-            })
+            val done = lessons.count {
+                it.language == language &&
+                    completed.contains(it.id)
+            }
 
-            addCard(content, box)
+            val item = card()
+
+            item.addView(
+                text(
+                    language,
+                    18f,
+                    purple,
+                    true
+                )
+            )
+
+            item.addView(
+                text(
+                    "$done / $count دروس مكتملة",
+                    13f,
+                    muted
+                )
+            )
+
+            addCard(item)
+
+            addButton("عرض دروس $language", true) {
+                showLanguage(language)
+            }
+        }
+
+        addButton("العودة للرئيسية") {
+            showHome()
         }
     }
 
     private fun showLanguage(language: String) {
-        openPage(language)
+        val languageLessons = lessons.filter {
+            it.language == language
+        }
 
-        val selected = lessons.filter { it.language == language }
+        render(
+            language,
+            "المسار التعليمي • ${languageLessons.size} دروس"
+        )
 
-        addText(content, "مسار $language", 22f, white, true)
-        addSpace(content, 8)
-        addText(content, "اختر درساً للبدء بالتعلّم.", 13f, muted)
-        addSpace(content, 18)
+        languageLessons.forEachIndexed { index, lesson ->
+            val isDone = completed.contains(lesson.id)
 
-        selected.forEach { lesson ->
-            val index = lessons.indexOf(lesson)
-            val done = isCompleted(index)
+            val item = card()
 
-            val box = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                background = cardBackground()
-                setPadding(dp(17), dp(16), dp(17), dp(16))
+            item.addView(
+                text(
+                    "الدرس ${index + 1}",
+                    12f,
+                    purple,
+                    true
+                )
+            )
+
+            item.addView(
+                text(
+                    lesson.title,
+                    17f,
+                    white,
+                    true
+                )
+            )
+
+            item.addView(
+                text(
+                    lesson.description,
+                    13f,
+                    muted
+                )
+            )
+
+            item.addView(
+                text(
+                    if (isDone) "مكتمل ✓" else lesson.level,
+                    12f,
+                    if (isDone) green else purple,
+                    true
+                )
+            )
+
+            addCard(item)
+
+            addButton(
+                if (isDone) "مراجعة الدرس" else "ابدأ الدرس",
+                true
+            ) {
+                showLesson(lesson)
             }
+        }
 
-            addText(box, lesson.title, 17f, white, true)
-            addSpace(box, 6)
-            addText(box, "${lesson.level}  •  $language", 12f, purple)
-            addSpace(box, 7)
-            addText(box, lesson.description, 13f, muted)
-            addSpace(box, 12)
-            box.addView(
-                button(if (done) "مكتمل ✓" else "ابدأ الدرس") {
-                    showLesson(index)
-                }, LinearLayout.LayoutParams(-1, -2)
+        addButton("رجوع للأكاديمية") {
+            showAcademy()
+        }
+    }
+
+    private fun showLesson(lesson: Lesson) {
+        render(
+            lesson.title,
+            "${lesson.language} • ${lesson.level}"
+        )
+
+        val description = card()
+
+        description.addView(
+            text(
+                "شرح الدرس",
+                17f,
+                purple,
+                true
             )
+        )
 
-            addCard(content, box)
-        }
-    }
-
-    private fun showLesson(index: Int) {
-        val lesson = lessons[index]
-        openPage("الدرس")
-
-        addText(content, lesson.language.uppercase(), 12f, purple, true)
-        addSpace(content, 8)
-        addText(content, lesson.title, 24f, white, true)
-        addSpace(content, 10)
-        addText(content, lesson.level, 12f, purple)
-        addSpace(content, 18)
-
-        addText(content, "شرح الدرس", 18f, white, true)
-        addSpace(content, 8)
-        addText(content, lesson.explanation, 15f, muted)
-        addSpace(content, 20)
-
-        addText(content, "مثال برمجي", 18f, white, true)
-        addSpace(content, 8)
-
-        val code = TextView(this).apply {
-            text = lesson.example
-            textSize = 14f
-            setTextColor(Color.rgb(211, 183, 255))
-            typeface = Typeface.MONOSPACE
-            textDirection = View.TEXT_DIRECTION_LTR
-            gravity = Gravity.LEFT
-            setPadding(dp(16), dp(18), dp(16), dp(18))
-            background = cardBackground(Color.rgb(15, 14, 23))
-        }
-
-        addCard(content, code)
-        addSpace(content, 10)
-
-        content.addView(button("انتقل إلى الاختبار") {
-            showQuiz(index)
-        })
-    }
-
-    private fun showQuiz(index: Int) {
-        val lesson = lessons[index]
-        openPage("اختبار الدرس")
-
-        addText(content, lesson.title, 20f, white, true)
-        addSpace(content, 15)
-        addText(content, lesson.question, 17f, white, true)
-        addSpace(content, 18)
-
-        var answered = false
-
-        lesson.answers.forEachIndexed { answerIndex, answer ->
-            content.addView(
-                button(answer) {
-                    if (answered) return@button
-                    answered = true
-
-                    if (answerIndex == lesson.correct) {
-                        if (!isCompleted(index)) {
-                            markCompleted(index)
-                        }
-                        showResult(true, lesson, index)
-                    } else {
-                        showResult(false, lesson, index)
-                    }
-                },
-                LinearLayout.LayoutParams(-1, -2).apply {
-                    bottomMargin = dp(10)
-                }
+        description.addView(
+            text(
+                lesson.description,
+                14f,
+                white
             )
-        }
-    }
+        )
 
-    private fun showResult(
-        correct: Boolean,
-        lesson: Lesson,
-        index: Int
-    ) {
-        openPage("نتيجة الاختبار")
+        description.addView(
+            text(
+                lesson.explanation,
+                13f,
+                muted
+            )
+        )
+
+        addCard(description, 5)
+
+        space(12)
 
         addText(
-            content,
-            if (correct) "إجابة صحيحة!" else "إجابة غير صحيحة",
-            24f,
-            if (correct) Color.rgb(91, 220, 155) else Color.rgb(255, 115, 125),
+            "مثال برمجي",
+            17f,
+            white,
             true
         )
 
-        addSpace(content, 12)
+        val codeCard = card()
 
-        addText(
-            content,
-            if (correct)
-                "أحسنت! أكملت هذا الدرس وحصلت على نقاط الخبرة."
-            else
-                "راجع شرح الدرس وحاول مرة أخرى.",
+        val codeText = text(
+            lesson.code,
             14f,
-            muted
+            Color.rgb(190, 160, 255),
+            true
         )
 
-        addSpace(content, 18)
+        codeText.typeface = Typeface.MONOSPACE
+        codeText.gravity = Gravity.LEFT
+        codeText.textDirection = View.TEXT_DIRECTION_LTR
 
-        if (correct) {
-            addText(content, "+50 XP", 25f, purple, true)
-        } else {
-            addText(
-                content,
-                "الإجابة الصحيحة: ${lesson.answers[lesson.correct]}",
-                14f,
+        codeCard.addView(codeText)
+
+        addCard(codeCard)
+
+        space(12)
+
+        addText(
+            "اختبر فهمك",
+            17f,
+            white,
+            true
+        )
+
+        addButton(
+            "ابدأ الاختبار",
+            true
+        ) {
+            showQuiz(lesson)
+        }
+
+        addButton("العودة إلى الدروس") {
+            showLanguage(lesson.language)
+        }
+    }
+
+    private fun showQuiz(lesson: Lesson) {
+        render(
+            "اختبار الدرس",
+            lesson.language
+        )
+
+        val questionCard = card()
+
+        questionCard.addView(
+            text(
+                lesson.question,
+                18f,
                 white,
                 true
             )
+        )
+
+        addCard(questionCard, 5)
+
+        lesson.options.forEachIndexed { index, option ->
+
+            addButton(option) {
+                if (index == lesson.correctAnswer) {
+                    completed.add(lesson.id)
+
+                    preferences.edit()
+                        .putStringSet(
+                            "completed",
+                            completed.toSet()
+                        )
+                        .apply()
+
+                    showQuizResult(
+                        lesson,
+                        true
+                    )
+                } else {
+                    showQuizResult(
+                        lesson,
+                        false
+                    )
+                }
+            }
         }
 
-        addSpace(content, 20)
-
-        content.addView(button("إعادة الاختبار") {
-            showQuiz(index)
-        })
-
-        addSpace(content, 10)
-
-        content.addView(button("العودة إلى الدروس") {
-            showLanguage(lesson.language)
-        })
+        addButton("رجوع للدرس") {
+            showLesson(lesson)
+        }
     }
 
-    private fun isCompleted(index: Int): Boolean {
-        return prefs.getStringSet("completed", emptySet())
-            ?.contains(index.toString()) == true
-    }
+    private fun showQuizResult(
+        lesson: Lesson,
+        correct: Boolean
+    ) {
+        render(
+            if (correct) "إجابة صحيحة" else "حاول مرة أخرى",
+            lesson.title
+        )
 
-    private fun markCompleted(index: Int) {
-        val completed = prefs.getStringSet(
-            "completed",
-            emptySet()
-        )?.toMutableSet() ?: mutableSetOf()
+        val result = card()
 
-        completed.add(index.toString())
+        result.addView(
+            text(
+                if (correct) "أحسنت! إجابتك صحيحة." else "الإجابة غير صحيحة.",
+                19f,
+                if (correct) green else Color.rgb(255, 110, 110),
+                true
+            )
+        )
 
-        prefs.edit()
-            .putStringSet("completed", completed)
-            .putInt("xp", totalXp() + 50)
-            .apply()
+        result.addView(
+            text(
+                if (correct) {
+                    "تم تسجيل إكمال الدرس وإضافة 25 نقطة."
+                } else {
+                    "راجع شرح الدرس وحاول مرة أخرى."
+                },
+                14f,
+                muted
+            )
+        )
+
+        addCard(result, 12)
+
+        if (correct) {
+            addButton(
+                "الدرس التالي",
+                true
+            ) {
+                showLanguage(lesson.language)
+            }
+        } else {
+            addButton(
+                "إعادة الاختبار",
+                true
+            ) {
+                showQuiz(lesson)
+            }
+        }
+
+        addButton("مراجعة الشرح") {
+            showLesson(lesson)
+        }
     }
 
     private fun showProgress() {
-        openPage("تقدمي")
-
-        val completed = completedCount()
         val total = lessons.size
-        val percent = (completed * 100) / total
+        val done = completed.size
+        val remaining = total - done
+        val percent = if (total == 0) 0 else done * 100 / total
+        val xp = done * 25
 
-        addText(content, "رحلتك التعليمية", 22f, white, true)
-        addSpace(content, 8)
-        addText(content, "تابع ما أنجزته في مسارات DEVORA.", 13f, muted)
-        addSpace(content, 20)
+        render(
+            "تقدمي التعليمي",
+            "تابع إنجازاتك في DEVORA."
+        )
 
-        val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = cardBackground()
-            setPadding(dp(18), dp(18), dp(18), dp(18))
+        val overview = card()
+
+        overview.addView(
+            text(
+                "$percent%",
+                30f,
+                purple,
+                true
+            )
+        )
+
+        overview.addView(
+            text(
+                "نسبة إكمال الدروس",
+                13f,
+                muted
+            )
+        )
+
+        overview.addView(
+            text(
+                "$done مكتمل • $remaining متبقٍ",
+                15f,
+                white,
+                true
+            )
+        )
+
+        overview.addView(
+            text(
+                "$xp XP",
+                18f,
+                green,
+                true
+            )
+        )
+
+        addCard(overview, 5)
+
+        space(15)
+
+        addText(
+            "تفاصيل اللغات",
+            18f,
+            white,
+            true
+        )
+
+        val languages = listOf(
+            "Python",
+            "Kotlin",
+            "Java",
+            "JavaScript",
+            "C++"
+        )
+
+        languages.forEach { language ->
+            val languageLessons = lessons.filter {
+                it.language == language
+            }
+
+            val finished = languageLessons.count {
+                completed.contains(it.id)
+            }
+
+            val item = card()
+
+            item.addView(
+                text(
+                    language,
+                    16f,
+                    purple,
+                    true
+                )
+            )
+
+            item.addView(
+                text(
+                    "$finished من ${languageLessons.size} دروس مكتملة",
+                    13f,
+                    muted
+                )
+            )
+
+            addCard(item)
         }
 
-        addText(box, "$percent%", 34f, purple, true)
-        addSpace(box, 8)
-        addText(box, "نسبة إكمال جميع الدروس", 13f, muted)
-        addSpace(box, 15)
-
-        val progress = ProgressBar(
-            this,
-            null,
-            android.R.attr.progressBarStyleHorizontal
-        ).apply {
-            max = 100
-            this.progress = percent
-            progressTintList = android.content.res.ColorStateList.valueOf(purple)
-            progressBackgroundTintList =
-                android.content.res.ColorStateList.valueOf(Color.DKGRAY)
+        addButton("العودة للرئيسية") {
+            showHome()
         }
+    }
 
-        box.addView(progress, LinearLayout.LayoutParams(-1, dp(9)))
-        addSpace(box, 15)
-        addText(box, "$completed من $total دروس مكتملة", 14f, white, true)
-
-        addCard(content, box)
-
-        addText(content, "نقاط الخبرة", 17f, white, true)
-        addSpace(content, 8)
-        addText(content, "${totalXp()} XP", 27f, purple, true)
-
-        addSpace(content, 20)
-        addText(content, "حالة المسارات", 18f, white, true)
-        addSpace(content, 10)
-
-        lessons.map { it.language }.distinct().forEach { language ->
-            val languageLessons = lessons.withIndex()
-                .filter { it.value.language == language }
-
-            val done = languageLessons.count { isCompleted(it.index) }
-            addText(content, "$language  —  $done / ${languageLessons.size}", 14f, muted)
-            addSpace(content, 9)
-        }
+    override fun onBackPressed() {
+        showHome()
     }
 }
